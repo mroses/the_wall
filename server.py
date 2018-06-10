@@ -1,5 +1,6 @@
-from flask import Flask, request, redirect, render_template, session, flash
 import md5
+import datetime
+from flask import Flask, request, redirect, render_template, session, flash
 
 app = Flask(__name__)
 app.secret_key = 'myreallysecretkey'
@@ -12,34 +13,43 @@ EMAIL_REGEX = re.compile(r"^[A-Za-z0-9\.\+_-]+@[A-Za-z0-9\._-]+\.[a-zA-Z]*$")
 
 @app.route('/')
 def index():
-    if session.get('id') != None:
-        return redirect('/wall')
+    #if session.get('id') != None:
+    #    return redirect('/wall')
     return render_template('index.html')
-
+'''
 @app.route('/wall')
 def success():
     if session.get('id') == None:
         return redirect('index.html')
     return render_template('wall.html')
-
+'''
 @app.route('/register', methods=['POST'])
 def register():
+
     session['first_name'] = request.form['first_name']
     session['last_name'] = request.form['last_name']
     session['email'] = request.form['email']
     session['password'] = request.form['password']
     session['password_confirm'] = request.form['password_confirm']
     print session['first_name']
-
+    
+    '''
+    first_name = request.form['first_name']
+    last_name = request.form['last_name']
+    email = request.form['email']
+    password = request.form['password']
+    password_confirm = request.form['password_confirm']
+    print first_name
+    '''
     first_name_valid = False
     last_name_valid = False
     email_valid = False
     password_valid = False
     confirm_password_valid = False
 
-    query = "SELECT * FROM users WHERE email=:email"
+    query = "SELECT * FROM users WHERE email_address=:email_address"
     data = {
-        'email': session['email']
+        'email_address': session['email']
     }
 
     user = mysql.query_db(query, data) #this finds anyone that has entered the same email in the form that exists in the DB.  
@@ -140,6 +150,14 @@ def wall():
     messages = mysql.query_db(query)
     print messages
 
+    query = """SELECT comments.id, comments.user_id, comments.messge_id, CONCAT(users.first_name, ' ', users.last_name) AS posted_by, DATE_FORMAT(messages.created_at, '%M %D, %Y') AS posted_on, messages.message as content
+        FROM comments
+        JOIN messages ON comments.message_id = messages.id
+        JOIN users ON messages.user_id = users.id"""
+        
+    comments = mysql.query_db(query)
+
+    return render_template('wall.html', messages=messages, comments=comments)
 
 @app.route('/add_message', methods=['POST'])
 def add_message():
